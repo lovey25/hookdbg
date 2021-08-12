@@ -46,11 +46,11 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
 
             // #3. WriteFile() 의 param 2, 3 값 구하기
             //   함수의 파라미터는 해당 프로세스의 스택에 존재함
-            //   param 2 : ESP + 0x8
-            //   param 3 : ESP + 0xC
-            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Esp + 0x8),
+            //   param 2 : Rdx
+            //   param 3 : R8
+            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Rdx),
                 &dwAddrOfBuffer, sizeof(DWORD), NULL);
-            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Esp + 0xC),
+            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.R8),
                 &dwNumOfBytesToWrite, sizeof(DWORD), NULL);
 
             // #4. 임시 버퍼 할당
@@ -78,9 +78,9 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             // #8. 임시 버퍼 해제
             free(lpBuffer);
 
-            // #9. Thread Context 의 EIP 를 WriteFile() 시작으로 변경
+            // #9. Thread Context 의 RIP 를 WriteFile() 시작으로 변경
             //   (현재는 WriteFile() + 1 만큼 지나왔음)
-            ctx.Eip = (DWORD)g_pfWriteFile;
+            ctx.Rip = (DWORD)g_pfWriteFile;
             SetThreadContext(g_cpdi.hThread, &ctx);
 
             // #10. Debuggee 프로세스를 진행시킴
