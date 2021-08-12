@@ -26,7 +26,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
 {
     CONTEXT ctx;
     PBYTE lpBuffer = NULL;
-    DWORD dwNumOfBytesToWrite, dwAddrOfBuffer, i;
+    DWORD64 dwNumOfBytesToWrite, dwAddrOfBuffer, i;
     PEXCEPTION_RECORD per = &pde->u.Exception.ExceptionRecord;
 
     // BreakPoint exception (INT 3) 인 경우
@@ -80,7 +80,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
 
             // #9. Thread Context 의 RIP 를 WriteFile() 시작으로 변경
             //   (현재는 WriteFile() + 1 만큼 지나왔음)
-            ctx.Rip = (DWORD)g_pfWriteFile;
+            ctx.Rip = (DWORD64)g_pfWriteFile;
             SetThreadContext(g_cpdi.hThread, &ctx);
 
             // #10. Debuggee 프로세스를 진행시킴
