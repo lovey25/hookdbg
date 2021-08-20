@@ -1,5 +1,7 @@
 ﻿#include "windows.h"
 #include "stdio.h"
+#include <Psapi.h>
+#include <tchar.h>
 
 LPVOID g_pfWriteFile = NULL;
 CREATE_PROCESS_DEBUG_INFO g_cpdi;
@@ -131,18 +133,45 @@ void DebugLoop()
     }
 }
 
+DWORD GetProcessByFileName(LPWSTR name)
+{
+    DWORD process_id_array[1024];
+    DWORD bytes_returned;
+    DWORD num_processes;
+    HANDLE hProcess;
+    WCHAR image_name[MAX_PATH] = { 0, };
+
+    DWORD i;
+    EnumProcesses(process_id_array, 1024 * sizeof(DWORD), &bytes_returned);
+    num_processes = (bytes_returned / sizeof(DWORD));
+    for (i = 0; i < num_processes; i++) {
+        hProcess = OpenProcess(PROCESS_ALL_ACCESS, TRUE, process_id_array[i]);
+        if (GetModuleBaseName(hProcess, 0, image_name, 256)) {
+            if (!wcscmp(image_name, name)) {
+                CloseHandle(hProcess);
+                return process_id_array[i];
+            }
+        }
+        CloseHandle(hProcess);
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     DWORD dwPID;
 
+    // Attach Process
     if (argc != 2)
     {
-        printf("\nUSAGE : hookdbg.exe <pid>\n");
-        return 1;
+        WCHAR pname[] =_T( "Notepad.exe");
+        dwPID = GetProcessByFileName(pname);
     }
-
-    // Attach Process
-    dwPID = atoi(argv[1]);
+    else
+    {
+        dwPID = atoi(argv[1]);
+    }
+    
     if (!DebugActiveProcess(dwPID))
     {
         printf("DebugActiveProcess(%d) failed!!!\n"
