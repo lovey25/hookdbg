@@ -43,7 +43,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
                 &g_chOrgByte, sizeof(BYTE), NULL);
 
             // #2. Thread Context 구하기
-            ctx.ContextFlags = CONTEXT_CONTROL;
+            ctx.ContextFlags = CONTEXT_ALL;
             GetThreadContext(g_cpdi.hThread, &ctx);
 
             // #3. WriteFile() 의 param 2, 3 값 구하기
@@ -51,18 +51,17 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             //   param 2 : Rdx
             //   param 3 : R8
             ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Rdx),
-                &dwAddrOfBuffer, sizeof(DWORD), NULL);
-            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.R8),
-                &dwNumOfBytesToWrite, sizeof(DWORD), NULL);
+                &dwAddrOfBuffer, sizeof(DWORD64), NULL);
+            dwNumOfBytesToWrite = ctx.R8;
 
             // #4. 임시 버퍼 할당
             lpBuffer = (PBYTE)malloc(dwNumOfBytesToWrite + 1);
             memset(lpBuffer, 0, dwNumOfBytesToWrite + 1);
 
             // #5. WriteFile() 의 버퍼를 임시 버퍼에 복사
-            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)dwAddrOfBuffer,
+            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Rdx),
                 lpBuffer, dwNumOfBytesToWrite, NULL);
-            printf("\n### original string ###\n%s\n", lpBuffer);
+           printf("\n### original string ###\n%s\n", lpBuffer);
 
             // #6. 소문자 -> 대문자 변환
             for (i = 0; i < dwNumOfBytesToWrite; i++)
@@ -74,8 +73,16 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             printf("\n### converted string ###\n%s\n", lpBuffer);
 
             // #7. 변환된 버퍼를 WriteFile() 버퍼로 복사
-            WriteProcessMemory(g_cpdi.hProcess, (LPVOID)dwAddrOfBuffer,
-                lpBuffer, dwNumOfBytesToWrite, NULL);
+            HANDLE handle1;
+            DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(),
+                &handle1, 0, TRUE, DUPLICATE_SAME_ACCESS);            
+            //DuplicateHandle : 현재 프로세스의 진짜 핸들을 얻는 함수 . handel1에 핸들이 들어가게 됨
+            /*GetCurrentProcess() 함수로 구하는 핸들은 가짜(Pseudo) 핸들이다.
+                핸들 테이블에 등록되지 않은 핸들이다.이 함수에서 반환되는 핸들은 현재 실행중인 프로세스를 참조하기 위한 용도로
+                정의해 놓은 상수가 반환된다.*/           
+
+            WriteProcessMemory(handle1, &dwAddrOfBuffer,
+               lpBuffer, dwNumOfBytesToWrite, NULL);
 
             // #8. 임시 버퍼 해제
             free(lpBuffer);
