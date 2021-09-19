@@ -28,8 +28,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
 {
     CONTEXT ctx;
     PBYTE lpBuffer = NULL;
-    DWORD64 dwNumOfBytesToWrite, i;
-    LPVOID dwAddrOfBuffer;
+    DWORD64 dwNumOfBytesToWrite, dwAddrOfBuffer, i;
     PEXCEPTION_RECORD per = &pde->u.Exception.ExceptionRecord;
 
     // BreakPoint exception (INT 3) 인 경우
@@ -51,7 +50,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             //   함수의 파라미터는 해당 프로세스의 스택에 존재함
             //   param 2 : Rdx
             //   param 3 : R8
-            dwAddrOfBuffer = (LPVOID)(ctx.Rdx);
+            dwAddrOfBuffer = ctx.Rdx;
             dwNumOfBytesToWrite = ctx.R8;
 
             // #4. 임시 버퍼 할당
@@ -59,7 +58,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             memset(lpBuffer, 0, dwNumOfBytesToWrite + 1);
 
             // #5. WriteFile() 의 버퍼를 임시 버퍼에 복사
-            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(ctx.Rdx),
+            ReadProcessMemory(g_cpdi.hProcess, (LPVOID)(dwAddrOfBuffer),
                 lpBuffer, dwNumOfBytesToWrite, NULL);
             printf("\n### original string ###\n%s\n", lpBuffer);
 
@@ -73,7 +72,7 @@ BOOL OnExceptionDebugEvent(LPDEBUG_EVENT pde)
             printf("\n### converted string ###\n%s\n", lpBuffer);
 
             // #7. 변환된 버퍼를 WriteFile() 버퍼로 복사
-            WriteProcessMemory(g_cpdi.hProcess, dwAddrOfBuffer,
+            WriteProcessMemory(g_cpdi.hProcess, (LPVOID)dwAddrOfBuffer,
                lpBuffer, dwNumOfBytesToWrite, NULL);
 
             // #8. 임시 버퍼 해제
